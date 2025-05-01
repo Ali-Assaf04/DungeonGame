@@ -1,63 +1,57 @@
-import jssc.*;
+import jssc.SerialPort;
+import jssc.SerialPortException;
 
 /**
  * SerialPortHandle.java
  * ----------------------
- * Wrapper class for managing serial port I/O using the JSSC library.
- * Handles opening, configuring, reading from, and closing a serial port.
+ * Wrapper for JSSC serial I/O.
  */
 public class SerialPortHandle {
-    // Underlying JSSC SerialPort object
     private final SerialPort sp;
 
     /**
-     * Constructor: opens and configures the serial port.
-     * @param port the name of the serial port (e.g., "COM8")
-     * @throws SerialPortException if the port cannot be opened or configured
+     * Open and configure the port at 9600 baud, 8 N 1.
+     * @param port e.g. "COM8"
      */
     public SerialPortHandle(String port) throws SerialPortException {
         sp = new SerialPort(port);
-        sp.openPort();                                 // Open the connection
+        sp.openPort();
         sp.setParams(
-            9600,     // baud rate
-            8,        // data bits
-            1,        // stop bits
-            0         // parity
+            9600, // baud
+            8,    // data bits
+            1,    // stop bits
+            0     // parity
         );
-        // Clear any existing data in the receive buffer
         sp.purgePort(SerialPort.PURGE_RXCLEAR);
     }
 
     /**
-     * Reads a single byte from the serial port, if available.
-     * @return the byte value (0–255) if data is available; -1 if no data or on error
+     * Read one byte if available, else return -1.
      */
     public int read() {
         try {
-            // Check if bytes are waiting in the input buffer
             if (sp.getInputBufferBytesCount() > 0) {
                 byte[] data = sp.readBytes(1);
-                return data[0] & 0xFF;  // Convert signed byte to unsigned int
+                return data[0] & 0xFF;
             } else {
-                return -1;              // No data available
+                return -1;
             }
-        } catch (Exception e) {
-            // On any exception (read error, port closed, etc.), return -1
+        } catch (SerialPortException e) {
             return -1;
         }
     }
 
     /**
-     * Closes the serial port if it is open.
-     * Silently ignores any exceptions during closure.
+     * **New**: Send a single byte (for the 0x01 handshake).
      */
+    public void writeByte(byte b) throws SerialPortException {
+        sp.writeByte(b);
+    }
+
+    /** Close if open. */
     public void close() {
         try {
-            if (sp.isOpened()) {
-                sp.closePort();      // Close the connection
-            }
-        } catch (Exception ignored) {
-            // Ignore errors on close
-        }
+            if (sp.isOpened()) sp.closePort();
+        } catch (SerialPortException ignored) { }
     }
 }
